@@ -1,5 +1,5 @@
 source("~/scripts/R/dna.R")
-library(levenR)
+#library(levenR)
 library(dnaplotr)
 #depends on directories:
 #  work (stores temp files)
