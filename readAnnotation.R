@@ -10,3 +10,4 @@ genes<-annots[annots$Type=='CDS',]
 genes$strand<-genes$Direction=='forward'
 
 genes$row<-stackRegions(genes$start-1000,genes$end+1000)
+genes$name<-sub(' CDS$','',genes$Name)
