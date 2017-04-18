@@ -2,6 +2,7 @@ library(dnar)
 source('readAnnotation.R')
 if(!file.exists('aaChanges.csv'))source('compareGenomes.R')
 aaChanges<-read.csv('aaChanges.csv',stringsAsFactors=FALSE)
+#note some genes end early in all three references e.g. UL15. Not sure how to plot
 diffs<-lapply(split(aaChanges,1:nrow(aaChanges)),function(xx){
 	aas<-seqSplit(xx[,c('msAA','bernAA')],fill='.')
 	diffs<-apply(aas,2,function(x)x[1]!=x[2])
