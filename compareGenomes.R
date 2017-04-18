@@ -1,5 +1,6 @@
 library(dnar)
 library(dnaplotr)
+library(levenR)
 #depends on directories:
 #  work (stores temp files)
 #  out (stores output files)
@@ -14,7 +15,7 @@ ms<-read.fa('ref/MS_Consensus.fasta')
 
 #align<-levenAlign(c(ref$seq,bern$seq,ms$seq),ref$seq,nThreads=3)
 if(!file.exists('work/align.blat'))blatReadsVsRefs(c('ref'=ref$seq,'bern'=bern$seq,'ms'=ms$seq),c('ref'=ref$seq),'work/align.blat',faToTwoBit='~/installs/blat/faToTwoBit','gfServer'='~/installs/blat/gfServer','gfClient'='~/installs/blat/gfClient',options='-maxNtSize=1000000')
-align<-readBlat('work/align.blat')
+align<-read.blat('work/align.blat')
 align<-align[align$score>100000,]
 refAligns<-blockToAlign(c('bern'=bern$seq,'ms'=ms$seq,'ref'=ref$seq)[align$qName],ref$seq,align$qStarts,align$tStarts,align$blockSizes)
 combo<-combineAligns(refAligns$tSeq,refAligns$qSeq)
@@ -29,10 +30,11 @@ genes$gapStartPlus2<-noGap2Gap(refSeq,genes[,'start']+2)
 genes$gapEnd<-noGap2Gap(refSeq,genes[,'end'])
 genes$gapEndMinus2<-noGap2Gap(refSeq,genes[,'end']-2)
 
+#some Ns in sequence here so suppressing warnings
 genes$msAA<-substring(paste(seqMat['ms',],collapse=''),genes$gapStart,genes$gapEnd)
-genes$msAA<-sub('X.*$','X',replaceAfterStop(dna2aa(degap(ifelse(genes$Direction=='forward',genes$msAA,revComp(genes$msAA))))))
+genes$msAA<-sub('X.*$','X',replaceAfterStop(dna2aa(degap(ifelse(genes$Direction=='forward',genes$msAA,revComp(genes$msAA))),warn=FALSE)))
 genes$bernAA<-substring(paste(seqMat['bern',],collapse=''),genes$gapStart,genes$gapEnd)
-genes$bernAA<-sub('X.*$','X',replaceAfterStop(dna2aa(degap(ifelse(genes$Direction=='forward',genes$bernAA,revComp(genes$bernAA))))))
+genes$bernAA<-sub('X.*$','X',replaceAfterStop(dna2aa(degap(ifelse(genes$Direction=='forward',genes$bernAA,revComp(genes$bernAA))),warn=FALSE)))
 
 #find the codons
 genes$startCodon<-substring(refSeq,ifelse(genes$Direction=='forward',genes$gapStart,genes$gapEndMinus2),ifelse(genes$Direction=='forward',genes$gapStartPlus2,genes$gapEnd))
@@ -57,12 +59,13 @@ table(genes$bernAA==genes$msAA|!grepl('z',genes$bernAA)|!grepl('z',genes$msAA),g
 table(genes$bernAA==genes$msAA,genes$bernMsDiff==0,grepl('z',genes$bernAA)|grepl('z',genes$msAA))
 
 aaChanges<-genes[genes$bernAA!=genes$msAA&!grepl('z',genes$bernAA)&!grepl('z',genes$msAA),]
+write.csv(aaChanges,'aaChanges.csv',row.names=FALSE)
 
 pdf('out/aaChanges.pdf')
 for(ii in 1:nrow(aaChanges)){
 	message(ii)
 	#thisDescription<-myTable[myTable$Gene==sub(' CDS','',genes[1,'Name']),'Description']
-	plotAA(aaChanges[ii,c('msAA','bernAA')],main=paste(aaChanges[ii,'Name'],groups=c('ms','bern'))
+	plotAA(aaChanges[ii,c('msAA','bernAA')],main=paste(aaChanges[ii,'Name'],collapse=','),groups=c('ms','bern'))
 	aas<-seqSplit(aaChanges[ii,c('msAA','bernAA')],fill='.')
 	diffs<-apply(aas,2,function(x)x[1]!=x[2])
 	axis(3,which(diffs),paste(aas[1,which(diffs)],which(diffs),aas[2,which(diffs)],sep=''),mgp=c(3,.35,0),tcl=-.3)
